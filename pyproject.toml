@@ -1,0 +1,32 @@
+[project]
+name = "pixels-agent"
+version = "0.1.0"
+description = "Pixels Game Knowledge Agent using AG2/AutoGen"
+requires-python = ">=3.9"
+dependencies = [
+    "pyautogen>=0.7.2",
+    "chromadb>=0.6.3",
+    "python-dotenv>=1.0.0",
+    "psycopg2-binary>=2.9.9",
+    "pgvector>=0.2.3",
+    "SQLAlchemy>=2.0.0",
+    "sentence-transformers>=2.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "black>=23.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"] 

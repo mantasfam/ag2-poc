@@ -1,0 +1,12 @@
+# Core dependencies
+python-dotenv>=1.0.0
+pyautogen>=0.7.2  # AG2/AutoGen framework
+chromadb>=0.6.3   # Required for CaptainAgent
+psycopg2-binary>=2.9.9    # PostgreSQL adapter
+pgvector>=0.2.3           # Vector operations in PostgreSQL
+SQLAlchemy>=2.0.0         # SQL toolkit
+sentence-transformers>=2.2.0  # For BGE embeddings
+
+# Development dependencies
+pytest>=7.4.0
+black>=23.0.0 
