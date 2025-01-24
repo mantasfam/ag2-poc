@@ -70,47 +70,40 @@ def get_embedding_model():
     return SentenceTransformer(model_name, device=device)
 
 def search_similar_messages(query: str) -> List[dict]:
-    """First search messages, then enrich with knowledge if available."""
+    """Search directly in discord_knowledge using vector similarity."""
     model = get_embedding_model()
     query_embedding = model.encode(query, normalize_embeddings=True)
     
     engine = get_db_engine()
     with engine.connect() as conn:
-        # First find relevant messages
-        message_result = conn.execute(
+        # Search in discord_knowledge table only
+        result = conn.execute(
             text("""
                 WITH query_embedding AS (
                     SELECT CAST(:embedding AS vector) as qemb
                 )
                 SELECT 
-                    m.id,
-                    m.message_id,
-                    m.content,
-                    m.author_name,
-                    m.timestamp,
-                    m.embedding <=> qemb as distance
-                FROM discord_messages m, query_embedding
-                WHERE m.embedding IS NOT NULL
+                    content,
+                    source_message_ids,
+                    embedding <=> qemb as distance
+                FROM discord_knowledge, query_embedding
+                WHERE embedding IS NOT NULL
                 ORDER BY distance
                 LIMIT :limit
             """),
             {
                 "embedding": query_embedding.tolist(),
-                "limit": int(os.getenv('SEARCH_LIMIT', 5))
+                "limit": int(os.getenv('SEARCH_LIMIT', 10))
             }
         )
         
         messages = []
-        for row in message_result:
-            # Get all knowledge entries
-            knowledge_entries = get_related_knowledge(conn, str(row.message_id))
+        for row in result:
             messages.append({
                 "content": row.content,
-                "message_id": row.message_id,
-                "author": row.author_name,
-                "timestamp": row.timestamp,
+                "source_ids": row.source_message_ids,
                 "distance": row.distance,
-                "knowledge": knowledge_entries  # Now it's a list of all knowledge
+                "knowledge": [row.content]  # The content itself is the knowledge
             })
                 
         return messages
