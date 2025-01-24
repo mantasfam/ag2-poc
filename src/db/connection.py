@@ -69,7 +69,7 @@ def get_embedding_model():
     device = os.getenv('EMBEDDING_DEVICE', 'cpu')
     return SentenceTransformer(model_name, device=device)
 
-def search_similar_messages(query: str, limit: int = 5) -> List[dict]:
+def search_similar_messages(query: str) -> List[dict]:
     """First search messages, then enrich with knowledge if available."""
     model = get_embedding_model()
     query_embedding = model.encode(query, normalize_embeddings=True)
@@ -84,6 +84,7 @@ def search_similar_messages(query: str, limit: int = 5) -> List[dict]:
                 )
                 SELECT 
                     m.id,
+                    m.message_id,
                     m.content,
                     m.author_name,
                     m.timestamp,
@@ -95,36 +96,39 @@ def search_similar_messages(query: str, limit: int = 5) -> List[dict]:
             """),
             {
                 "embedding": query_embedding.tolist(),
-                "limit": limit
+                "limit": int(os.getenv('SEARCH_LIMIT', 5))
             }
         )
         
         messages = []
         for row in message_result:
-            # Try to find related knowledge
-            knowledge = get_related_knowledge(conn, str(row.id))  # Convert ID to string
+            # Get all knowledge entries
+            knowledge_entries = get_related_knowledge(conn, str(row.message_id))
             messages.append({
                 "content": row.content,
+                "message_id": row.message_id,
                 "author": row.author_name,
                 "timestamp": row.timestamp,
                 "distance": row.distance,
-                "knowledge": knowledge if knowledge else None
+                "knowledge": knowledge_entries  # Now it's a list of all knowledge
             })
                 
         return messages
 
-def get_related_knowledge(conn, message_id: str) -> str:
-    """Find curated knowledge related to a message."""
+def get_related_knowledge(conn, message_id: str) -> List[str]:
+    """Find all curated knowledge related to a message."""
     result = conn.execute(
         text("""
             SELECT content
             FROM discord_knowledge
             WHERE CAST(:msg_id AS TEXT) = ANY(CAST(source_message_ids AS TEXT[]))
+            ORDER BY content
         """),
         {"msg_id": message_id}
     )
-    row = result.first()
-    return row.content if row else None
+    
+    # Return all knowledge entries, not just first one
+    return [row.content for row in result]
 
 def get_message_context(conn, message_id: int, context_size: int = 2):
     """Get surrounding messages for additional context."""

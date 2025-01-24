@@ -8,15 +8,17 @@ class KnowledgeBase:
     def get_context(self, query: str) -> str:
         """Get formatted context for a query."""
         # Get relevant messages from database only
-        messages = search_similar_messages(query, limit=5)
+        messages = search_similar_messages(query)
         
         # Format them into context string
         context = "Here are some relevant past messages:\n\n"
         for msg in messages:
-            context += f"User {msg['author']} said: {msg['content']}\n"
+            context += f"message_id {msg['message_id']} said: {msg['content']}\n"
             context += f"(Posted at: {msg['timestamp']}, Relevance: {1-msg['distance']:.4f})\n\n"
             if msg['knowledge']:
-                context += f"Additional info: {msg['knowledge']}\n\n"
+                for knowledge in msg['knowledge']:
+                    context += f"Additional info: {knowledge}\n"
+                context += "\n"
         
         return context
 

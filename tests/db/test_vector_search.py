@@ -17,7 +17,7 @@ def test_vector_search():
         print(f"\nQuery: {query}")
         print("-" * 40)
         
-        results = search_similar_messages(query, limit=3)
+        results = search_similar_messages(query)
         
         for result in results:
             print(f"\nUser: {result['username']}")
